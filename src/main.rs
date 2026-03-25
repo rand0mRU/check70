@@ -42,11 +42,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cmd.as_str() {
         "--init" | "-i" => {
-            init_config();
+            config::init_config();
             Ok(())
         }
         "--init-clear" | "-ic" => {
-            init_config_clear();
+            config::init_config_clear();
             Ok(())
         }
         "-w" => {
@@ -64,44 +64,6 @@ fn print_help() {
     println!("check70 utility.\nusage: check70 <test name> [args]");
     println!("Use '-i' for init");
     println!("Use '-w' for start web server");
-}
-
-fn init_config() {
-    let mut config = Config::new();
-    let example_run = Run {
-        start: "python test.py".to_string(),
-        input: "10\n2\n".to_string(),
-        output: "5.0\n".to_string(),
-        timeout: 1000,
-    };
-    
-    config.insert("py-example".to_string(), ConfigEntry {
-        compile: "".to_string(),
-        runs: vec![example_run],
-    });
-
-    let f = File::create(CONFIG_FILE).expect("Error creating file");
-    serde_yaml::to_writer(f, &config).expect("Error YAML writing");
-    println!("{}", "[check70] Configuration ready".green());
-}
-
-fn init_config_clear() {
-    let mut config = Config::new();
-    let example_run = Run {
-        start: "".to_string(),
-        input: "".to_string(),
-        output: "".to_string(),
-        timeout: 1000,
-    };
-    
-    config.insert("check".to_string(), ConfigEntry {
-        compile: "".to_string(),
-        runs: vec![example_run],
-    });
-
-    let f = File::create(CONFIG_FILE).expect("Error creating file");
-    serde_yaml::to_writer(f, &config).expect("Error YAML writing");
-    println!("{}", "[check70] Configuration ready".green());
 }
 
 fn run_tests(args: &[String]) {
@@ -156,14 +118,22 @@ fn run_tests(args: &[String]) {
 
         let output = child.wait_with_output().expect("Error running");
         let duration = start_time.elapsed().as_millis();
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        
+        let stdout = String::from_utf8_lossy(&output.stdout)
+            .to_string()
+            .replace("\r\n", "\n");
+        let expected = run.output.replace("\r\n", "\n");
 
-        if stdout.trim() == run.output.trim() {
+        if stdout.trim() == expected.trim() {
             println!("{}", format!("[test {}] result: ok. time: {} ms", i + 1, duration).green());
             correct += 1;
         } else {
-            println!("{}", format!("[test {}] result: incorrect, process ended with error\n\tactual: {:?}\n\texpected: {:?}", i + 1, stdout, run.output).red());
-            println!("error stack:\n{}", String::from_utf8_lossy(&output.stderr).to_string());
+            println!("{}", format!("[test {}] result: incorrect, process ended with error\n\tactual: {:?}\n\texpected: {:?}", i + 1, stdout, expected).red());
+            
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            if !stderr.is_empty() {
+                println!("error stack:\n{}", stderr);
+            }
             incorrect += 1;
             if exit_on_error { break; }
         }
