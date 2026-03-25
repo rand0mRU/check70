@@ -1,8 +1,11 @@
+mod server;
+mod config;
+mod parser;
+
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
-// use std::io::{Read, Write};
 use std::io::{Write};
 use std::process::{Command, Stdio};
 use std::time::Instant;
@@ -26,29 +29,41 @@ type Config = HashMap<String, ConfigEntry>;
 
 const CONFIG_FILE: &str = ".check70.yaml";
 
-fn main() {
+#[actix_web::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
         print_help();
-        return;
+        return Ok(());
     }
 
     let cmd = &args[1];
 
     match cmd.as_str() {
-        "--init" | "-i" => init_config(),
-        "--init-clear" | "-ic" => init_config_clear(),
-        // "-c" | "--copy" => {
-        //     println!("{}", "[check70] Парсинг с сайта пока не реализован в Rust версии напрямую (требуется порт библиотеки)".yellow());
-        // }
-        _ => run_tests(&args),
+        "--init" | "-i" => {
+            init_config();
+            Ok(())
+        }
+        "--init-clear" | "-ic" => {
+            init_config_clear();
+            Ok(())
+        }
+        "-w" => {
+            server::start_server().await?;
+            Ok(())
+        }
+        _ => {
+            run_tests(&args);
+            Ok(())
+        }
     }
 }
 
 fn print_help() {
     println!("check70 utility.\nusage: check70 <test name> [args]");
     println!("Use '-i' for init");
+    println!("Use '-w' for start web server");
 }
 
 fn init_config() {

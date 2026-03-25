@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "web-check60",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost:60177/*"],
+  "action": {
+    "default_title": "web-check60 for Codeforces"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
