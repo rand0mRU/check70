@@ -101,7 +101,6 @@ fn run_tests(args: &[String]) {
     let mut incorrect = 0;
 
     for (i, run) in entry.runs.iter().enumerate() {
-        let start_time = Instant::now();
         let cmd_parts: Vec<&str> = run.start.split_whitespace().collect();
         
         let mut child = Command::new(cmd_parts[0])
@@ -111,7 +110,8 @@ fn run_tests(args: &[String]) {
             .stderr(Stdio::piped())
             .spawn()
             .expect("Cannot start process");
-
+        
+        let start_time = Instant::now();
         let mut stdin = child.stdin.take().unwrap();
         stdin.write_all(run.input.as_bytes()).unwrap();
         drop(stdin);
